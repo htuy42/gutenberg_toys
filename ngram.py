@@ -1,5 +1,7 @@
 import random
 
+import re
+
 
 def normalize_flat_dict(dct):
     # for elt in dct:
@@ -28,6 +30,7 @@ class NGram:
         self.dct = {}
         self.n = n
         self.id = id
+        self.author = "NONEAUTHOR"
 
     def add_to_self(self,prev_words):
         if len(prev_words) >= self.n:
@@ -55,7 +58,7 @@ class NGram:
         for elt in self.dct:
             if elt in other.dct:
                 score += self.dct[elt] * other.dct[elt]
-        return (score / max(slf,other_s)) ** 2
+        return (score / max(slf,other_s,1)) ** 2
 
 
     def compare_to(self,others):
@@ -64,7 +67,7 @@ class NGram:
             if self.id == others[i].id:
                 score[i] = ["a","a",0]
                 continue
-            score[i] = [self.id, others[i].id, self.compare(others[i])]
+            score[i] = [self.author, others[i].author, self.compare(others[i])]
         return score
 
 
@@ -89,6 +92,41 @@ class NGram:
             return None
         return self.rec_make_word(words,dct[word])
 
+    def read_in_book(self,book):
+
+        bk_txt = []
+        try:
+            fbook = open(book)
+            bk_txt = fbook.read().split("\n")
+        except:
+            fbook = open(book,encoding="utf8")
+            bk_txt = fbook.read().split("\n")
+
+        fbook.close()
+        for line in bk_txt:
+            cpy = line[:]
+            spl = cpy.split(" ")
+            if spl[0] == "Author:":
+                self.author = " ".join(spl[1:])
+                break
+
+        last_words = []
+        for line in bk_txt:
+            words = re.sub("[[;'.,?|\"()\-\:]]", " ", line)
+            grams = re.sub("[.]", " ", words).split(" ")
+            for word in words:
+                if word == "":
+                    continue
+                if word == " ":
+                    continue
+                if word == "*":
+                    continue
+                self.add_to_self(last_words)
+                last_words.insert(0, word)
+                if len(last_words) > self.n:
+                    last_words.pop()
+
+
 
 
     def make_word(self,last_words):
@@ -96,3 +134,20 @@ class NGram:
             return None
         last_words = last_words[:self.n]
         return self.rec_make_word(last_words,self.dct)
+
+    def prune_as_monograms(self, grammers):
+        #this won't work when the ngrams have n other that one. It could easily be reworked to do
+        #so but hasn't been needed to thus far
+        to_prune = []
+        for master in grammers[:20]:
+            for word in master.dct:
+                may_miss = len(grammers) // 5
+                for gram in grammers:
+                    if word not in gram.dct:
+                        may_miss -= 1
+                if may_miss > 0:
+                    to_prune.append(word)
+        for word in to_prune:
+            for gram in grammers:
+                if word in gram.dct:
+                    del gram.dct[word]
