@@ -1,17 +1,9 @@
 import re
-
 import math
-
 from ngram import NGram
-
-
-
 input_books = ["book.txt", "book2.txt","book3.txt","book4.txt","book5.txt","book6.txt","book7.txt","book8.txt",
                "book9.txt"]
-
-
 grammers = [NGram(1,input_books[x]) for x in range(9)]
-
 for ind in range(len(input_books)):
     book = open(input_books[ind], encoding="utf8")
     txt = book.read().split("\n")
@@ -37,12 +29,14 @@ for ind in range(len(input_books)):
                 last_words.pop()
             cur_gram.add_to_self(last_words)
 
+
 def normalize(arr):
     sm = sum([x[2] for x in arr])
     for i in range(len(arr)):
         arr[i][2] *= 100.0 / sm
         arr[i][2] = round(arr[i][2],1)
     return arr
+
 
 def prune(grams):
     alls = []
@@ -61,8 +55,6 @@ def prune(grams):
 
 
 print(grammers[0].dct)
-
 prune(grammers)
-
 for ind in grammers:
     print([x[2] for x in normalize(ind.compare_to(grammers))])
